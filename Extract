@@ -1,0 +1,159 @@
+package com.extract.test;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Scanner;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Element;
+
+import com.github.axet.vget.VGet;
+
+/**
+ * 
+ * @author yp908196
+ * 
+ *         a little unstable at the moment- maybe due to the dynamic nature of
+ *         the web site, run it twice or thrice if you get an exception in the
+ *         first run
+ * 
+ */
+
+public class Extract {
+	static List<String> l = new ArrayList<String>();
+
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		// location loc is where you want to store the video.
+		String loc = "/Users/yp908196/Downloads";
+		try {
+			// PrintStream out = new PrintStream(new
+			// FileOutputStream("C:/Users/yp908196/Desktop/source.txt", false));
+			// System.out.println(getUrlSource("https://www.youtube.com/watch?v=CB1woRRC5Yw"));
+			// out=getUrlSource("https://www.youtube.com/watch?v=CB1woRRC5Yw");
+
+			// you need to supply the website/URL as the argument.
+			System.out.println(get(args[0]));
+
+			extractTest(args[0]); // this will extract the text content of the
+									// website under <p>, <tr> - we need to add
+									// more and need to format it better- can be
+									// done latter.
+			l = extractLinks(args[0]);// this will extract all the links in the
+										// website- <href>, <iframe>- but, this
+										// needs to be improve as well- need
+										// more time to check where the videos
+										// ar embedded
+			// l.removeAll(Collections.singleton(null));
+			l.removeAll(Arrays.asList(null, "")); // remove the null contents-
+													// to avoid exceptions.
+
+			for (String url : l) {
+				// AppManagedDownload.main(new String[] {
+				// "http://www.youtube.com/watch?v=aQRLSBUNupg",
+				// "/Users/yp908196/Downloads" });
+				VGet v = new VGet(new URL(url), new File(loc));
+				v.download();
+			}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	/*
+ * 
+ */
+	static List<String> extractLinks(String url) {
+		List<String> link = new ArrayList<String>();
+		try {
+			String temp = null;
+			org.jsoup.nodes.Document doc = Jsoup.connect(url).get();
+
+			org.jsoup.select.Elements links = doc.select("a[href]");
+			for (Element e : doc.select("iframe")) {
+				System.out.println(e.attr("src") + "\n");
+				temp = e.attr("src");
+				format(temp);
+				temp = temp.replace("embed/", "watch?v="); // if the video is an
+															// embedded one then
+															// change it to the
+															// watchable one.
+				link.add(temp);
+			}
+			for (Element e : doc.select("a")) {
+				System.out.println(e.attr("href") + "\n");
+				temp = e.attr("href");
+				String tem = format(temp);
+				tem = tem.replace("embed/", "watch?v=");
+				link.add(e.attr(tem));
+			}
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return link;
+	}
+
+	static public String format(String s) {
+		if (s.contains("youtube")) {
+			s.replace("*http", "http");
+			return s;
+		}
+		return "";
+	}
+
+	static void extractTest(String url) {
+		org.jsoup.nodes.Document doc;
+		try {
+
+			doc = Jsoup.connect(url).get();
+			org.jsoup.select.Elements ps = doc.select("p");
+			org.jsoup.select.Elements tr = doc.select("tr");
+			org.jsoup.select.Elements src = doc.select("src");
+
+			System.out.println((ps.text()) + (tr.text()) + (src.text())
+					+ (ps.attr("src")));
+
+			// org.jsoup.select.Elements vid=doc.select("iframe[src]");
+			// System.out.println(vid.text());
+
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+
+	private static String getUrlSource(String url) throws IOException {
+		URL yahoo = new URL(url);
+		URLConnection yc = yahoo.openConnection();
+		BufferedReader in = new BufferedReader(new InputStreamReader(
+				yc.getInputStream(), "UTF-8"));
+		String inputLine;
+		StringBuilder a = new StringBuilder();
+		while ((inputLine = in.readLine()) != null)
+			a.append(inputLine);
+		in.close();
+
+		return a.toString();
+	}
+
+	public static String get(String url) throws Exception {
+		StringBuilder sb = new StringBuilder();
+		for (Scanner sc = new Scanner(new URL(url).openStream()); sc.hasNext();)
+			sb.append(sc.nextLine()).append('\n');
+		return sb.toString();
+	}
+
+}
